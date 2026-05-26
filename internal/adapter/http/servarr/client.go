@@ -20,7 +20,6 @@ import (
 )
 
 const (
-	apiPrefix       = "/api/v3"
 	commandBackup   = "Backup"
 	statusCompleted = "completed"
 	statusFailed    = "failed"
@@ -40,25 +39,26 @@ func NewClient(httpClient *http.Client) *Client {
 }
 
 func (c *Client) Trigger(ctx context.Context, target models.BackupTarget) (string, error) {
-	if target.APIScheme != models.APISchemeServarrV3 {
-		return "", fmt.Errorf("servarr client: unsupported api scheme %q", target.APIScheme)
-	}
-
-	before, err := c.listBackups(ctx, target)
+	prefix, err := apiPrefix(target.APIScheme)
 	if err != nil {
 		return "", err
 	}
 
-	cmd, err := c.postCommand(ctx, target, commandBackup)
+	before, err := c.listBackups(ctx, target, prefix)
 	if err != nil {
 		return "", err
 	}
 
-	if err := c.waitForCommand(ctx, target, cmd.ID); err != nil {
+	cmd, err := c.postCommand(ctx, target, prefix, commandBackup)
+	if err != nil {
 		return "", err
 	}
 
-	after, err := c.listBackups(ctx, target)
+	if err := c.waitForCommand(ctx, target, prefix, cmd.ID); err != nil {
+		return "", err
+	}
+
+	after, err := c.listBackups(ctx, target, prefix)
 	if err != nil {
 		return "", err
 	}
@@ -88,21 +88,32 @@ type backupResource struct {
 	Time string `json:"time"`
 }
 
-func (c *Client) postCommand(ctx context.Context, target models.BackupTarget, name string) (*commandResponse, error) {
+func apiPrefix(scheme models.APIScheme) (string, error) {
+	switch scheme {
+	case models.APISchemeServarrV3:
+		return "/api/v3", nil
+	case models.APISchemeServarrV1:
+		return "/api/v1", nil
+	default:
+		return "", fmt.Errorf("servarr client: unsupported api scheme %q", scheme)
+	}
+}
+
+func (c *Client) postCommand(ctx context.Context, target models.BackupTarget, prefix, name string) (*commandResponse, error) {
 	body, err := json.Marshal(commandRequest{Name: name})
 	if err != nil {
 		return nil, err
 	}
 
 	var resp commandResponse
-	if err := c.doJSON(ctx, target, http.MethodPost, apiPrefix+"/command", body, &resp); err != nil {
+	if err := c.doJSON(ctx, target, http.MethodPost, prefix+"/command", body, &resp); err != nil {
 		return nil, fmt.Errorf("post backup command: %w", err)
 	}
 
 	return &resp, nil
 }
 
-func (c *Client) waitForCommand(ctx context.Context, target models.BackupTarget, commandID int64) error {
+func (c *Client) waitForCommand(ctx context.Context, target models.BackupTarget, prefix string, commandID int64) error {
 	poll := time.Duration(config.App.CommandPollIntervalMS) * time.Millisecond
 	if poll <= 0 {
 		poll = time.Second
@@ -114,7 +125,7 @@ func (c *Client) waitForCommand(ctx context.Context, target models.BackupTarget,
 	}
 
 	deadline := time.Now().Add(timeout)
-	uri := fmt.Sprintf("%s/command/%d", apiPrefix, commandID)
+	uri := fmt.Sprintf("%s/command/%d", prefix, commandID)
 
 	for {
 		if ctx.Err() != nil {
@@ -144,9 +155,9 @@ func (c *Client) waitForCommand(ctx context.Context, target models.BackupTarget,
 	}
 }
 
-func (c *Client) listBackups(ctx context.Context, target models.BackupTarget) ([]backupResource, error) {
+func (c *Client) listBackups(ctx context.Context, target models.BackupTarget, prefix string) ([]backupResource, error) {
 	var backups []backupResource
-	if err := c.doJSON(ctx, target, http.MethodGet, apiPrefix+"/system/backup", nil, &backups); err != nil {
+	if err := c.doJSON(ctx, target, http.MethodGet, prefix+"/system/backup", nil, &backups); err != nil {
 		return nil, fmt.Errorf("list backups: %w", err)
 	}
 	return backups, nil
@@ -194,10 +205,15 @@ func resolveLocalPath(target models.BackupTarget, apiPath string) (string, error
 	}
 
 	local := apiPath
-	if strings.HasPrefix(apiPath, "/config") {
+	switch {
+	case strings.HasPrefix(apiPath, "/config"):
 		local = filepath.Join(mount, strings.TrimPrefix(apiPath, "/config"))
-	} else if vol := strings.TrimPrefix(apiPath, "\\config"); vol != apiPath {
-		local = filepath.Join(mount, vol)
+	case strings.HasPrefix(apiPath, "/backup"):
+		rest := strings.TrimPrefix(apiPath, "/backup")
+		rest = strings.TrimPrefix(rest, "/")
+		local = filepath.Join(mount, "Backups", rest)
+	case strings.HasPrefix(apiPath, "\\config"):
+		local = filepath.Join(mount, strings.TrimPrefix(apiPath, "\\config"))
 	}
 
 	local = filepath.Clean(local)

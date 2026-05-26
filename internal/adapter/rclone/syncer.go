@@ -11,6 +11,7 @@ import (
 	"github.com/Sargastico/rclonarr/internal/core/config"
 	"github.com/Sargastico/rclonarr/internal/core/domain/port"
 	"github.com/rclone/rclone/fs"
+	rcconfig "github.com/rclone/rclone/fs/config"
 	"github.com/rclone/rclone/fs/config/configfile"
 	"github.com/rclone/rclone/fs/operations"
 	fssync "github.com/rclone/rclone/fs/sync"
@@ -123,12 +124,16 @@ func (s *Syncer) ensureInitialized() error {
 	}
 
 	if config.App.RcloneConfigPath != "" {
+		if err := rcconfig.SetConfigPath(config.App.RcloneConfigPath); err != nil {
+			return fmt.Errorf("set rclone config path: %w", err)
+		}
 		if err := os.Setenv("RCLONE_CONFIG", config.App.RcloneConfigPath); err != nil {
 			return fmt.Errorf("set RCLONE_CONFIG: %w", err)
 		}
 	}
 
 	configfile.Install()
+	rcconfig.LoadedData()
 
 	s.ready = true
 	otelzap.L().Info("rclone initialized", zap.String("config", config.App.RcloneConfigPath))

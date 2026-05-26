@@ -29,7 +29,8 @@ const (
 type APIScheme string
 
 const (
-	APISchemeServarrV3 APIScheme = "servarr_v3"
+	APISchemeServarrV1 APIScheme = "servarr_v1" // Prowlarr, Lidarr
+	APISchemeServarrV3 APIScheme = "servarr_v3" // Sonarr, Radarr
 	APISchemeBazarr    APIScheme = "bazarr"
 )
 

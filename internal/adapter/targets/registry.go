@@ -183,8 +183,10 @@ func apiCredentials(id models.AppID) apiCreds {
 
 func apiSchemeFor(id models.AppID) (models.APIScheme, bool) {
 	switch id {
-	case models.AppSonarr, models.AppRadarr, models.AppProwlarr, models.AppLidarr:
+	case models.AppSonarr, models.AppRadarr:
 		return models.APISchemeServarrV3, true
+	case models.AppProwlarr, models.AppLidarr:
+		return models.APISchemeServarrV1, true
 	case models.AppBazarr:
 		return models.APISchemeBazarr, true
 	default:

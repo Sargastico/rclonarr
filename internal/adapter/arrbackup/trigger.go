@@ -28,7 +28,7 @@ func NewTrigger(httpClient *http.Client) *Trigger {
 
 func (t *Trigger) Trigger(ctx context.Context, target models.BackupTarget) (string, error) {
 	switch target.APIScheme {
-	case models.APISchemeServarrV3:
+	case models.APISchemeServarrV1, models.APISchemeServarrV3:
 		return t.servarr.Trigger(ctx, target)
 	case models.APISchemeBazarr:
 		return t.bazarr.Trigger(ctx, target)

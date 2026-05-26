@@ -83,4 +83,13 @@ func TestResolveLocalPath(t *testing.T) {
 	got, err := resolveLocalPath(target, "/config/Backups/scheduled/backup.zip")
 	require.NoError(t, err)
 	require.Equal(t, file, got)
+
+	manualDir := filepath.Join(dir, "Backups", "manual")
+	require.NoError(t, os.MkdirAll(manualDir, 0o755))
+	manualFile := filepath.Join(manualDir, "sonarr_backup.zip")
+	require.NoError(t, os.WriteFile(manualFile, []byte("x"), 0o600))
+
+	got, err = resolveLocalPath(target, "/backup/manual/sonarr_backup.zip")
+	require.NoError(t, err)
+	require.Equal(t, manualFile, got)
 }
