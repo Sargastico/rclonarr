@@ -69,6 +69,7 @@ func TestRegistry_EnabledTargets(t *testing.T) {
 
 	config.App = config.AppInfo{
 		RemoteName:       "b2",
+		RcloneConfigPath: "/config/rclone/rclone.conf",
 		EnabledTargets:   "sonarr",
 		SonarrConfigPath: configPath,
 	}
@@ -85,9 +86,10 @@ func TestRegistry_EnabledTargets(t *testing.T) {
 func TestRegistry_ArrAPIRequiresCredentials(t *testing.T) {
 
 	config.App = config.AppInfo{
-		RemoteName:     "b2",
-		EnabledTargets: "sonarr",
-		SonarrURL:      "http://sonarr:8989",
+		RemoteName:       "b2",
+		RcloneConfigPath: "/config/rclone/rclone.conf",
+		EnabledTargets:   "sonarr",
+		SonarrURL:        "http://sonarr:8989",
 	}
 
 	reg := NewRegistry()
@@ -102,6 +104,7 @@ func TestRegistry_ArrAPIKeyFromConfigXML(t *testing.T) {
 
 	config.App = config.AppInfo{
 		RemoteName:        "b2",
+		RcloneConfigPath:  "/config/rclone/rclone.conf",
 		EnabledTargets:    "sonarr",
 		SonarrURL:         "http://sonarr:8989",
 		SonarrBackupMount: dir,
@@ -118,6 +121,7 @@ func TestRegistry_ArrAPIResolved(t *testing.T) {
 
 	config.App = config.AppInfo{
 		RemoteName:        "b2",
+		RcloneConfigPath:  "/config/rclone/rclone.conf",
 		EnabledTargets:    "sonarr",
 		SonarrURL:         "http://sonarr:8989",
 		SonarrAPIKey:      "secret",
@@ -135,8 +139,9 @@ func TestRegistry_ArrAPIResolved(t *testing.T) {
 func TestRegistry_KomodoRequiresMongo(t *testing.T) {
 
 	config.App = config.AppInfo{
-		RemoteName:     "b2",
-		EnabledTargets: "komodo",
+		RemoteName:       "b2",
+		RcloneConfigPath: "/config/rclone/rclone.conf",
+		EnabledTargets:   "komodo",
 	}
 
 	reg := NewRegistry()

@@ -44,7 +44,7 @@ func (r *Registry) EnabledTargets() ([]models.BackupTarget, error) {
 }
 
 func validateRcloneConfig() error {
-	if config.App.RemoteName == "" {
+	if config.App.RemoteName == "" || config.App.RcloneConfigPath == "" {
 		return models.ErrMissingRclone
 	}
 	return nil
