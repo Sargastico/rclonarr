@@ -18,6 +18,10 @@ type AppInfo struct {
 
 	EnabledTargets string `default:""`
 
+	// Schedule is a standard 5-field cron expression (e.g. "0 3 * * *"). Empty = run once and exit.
+	// When set, daemon mode runs one bootstrap backup, then waits for cron.
+	Schedule string `default:""`
+
 	CommandPollIntervalMS int `default:"1000"`
 	CommandTimeoutSec       int `default:"300"`
 

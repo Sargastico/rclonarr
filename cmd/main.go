@@ -4,13 +4,16 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/Sargastico/rclonarr/internal/core/config"
+	"github.com/Sargastico/rclonarr/internal/core/domain/models"
 	"github.com/Sargastico/rclonarr/internal/core/service"
 	"github.com/Sargastico/rclonarr/internal/di"
+	"github.com/Sargastico/rclonarr/internal/platform/schedule"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.uber.org/zap"
 )
@@ -38,7 +41,20 @@ func run() int {
 		}
 	}()
 
+	scheduleExpr := strings.TrimSpace(config.App.Schedule)
+	if scheduleExpr != "" {
+		if err := schedule.RunDaemon(ctx, container, scheduleExpr); err != nil {
+			otelzap.L().Error("scheduler failed", zap.Error(err))
+			return 1
+		}
+		return 0
+	}
+
 	results, err := container.RunOnce(ctx)
+	return runOnceExit(results, err)
+}
+
+func runOnceExit(results []models.BackupResult, err error) int {
 	if service.HasFailures(results) {
 		for _, r := range results {
 			if r.Err != nil {

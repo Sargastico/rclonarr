@@ -95,6 +95,25 @@ func TestRegistry_ArrAPIRequiresCredentials(t *testing.T) {
 	require.ErrorIs(t, err, models.ErrMissingAPI)
 }
 
+func TestRegistry_ArrAPIKeyFromConfigXML(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "config.xml"), []byte(`<?xml version="1.0"?>
+<Config><ApiKey>from-disk</ApiKey></Config>`), 0o600))
+
+	config.App = config.AppInfo{
+		RemoteName:        "b2",
+		EnabledTargets:    "sonarr",
+		SonarrURL:         "http://sonarr:8989",
+		SonarrBackupMount: dir,
+	}
+
+	reg := NewRegistry()
+	targets, err := reg.EnabledTargets()
+	require.NoError(t, err)
+	require.Len(t, targets, 1)
+	assert.Equal(t, "from-disk", targets[0].APIKey)
+}
+
 func TestRegistry_ArrAPIResolved(t *testing.T) {
 
 	config.App = config.AppInfo{

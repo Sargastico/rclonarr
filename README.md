@@ -2,7 +2,9 @@
 
 Homelab backup worker that triggers *arr in-app backups via their HTTP APIs, uploads the resulting archives with embedded [rclone](https://rclone.org), and backs up Komodo via `mongodump`. Config-directory sync remains available as a fallback.
 
-The container **starts, runs configured backups, and exits** (exit code `0` on success, `1` on any failure). Schedule it with cron, Kubernetes CronJob, or Docker Compose with `restart: "no"`.
+With **`APP_SCHEDULE`** set (5-field cron, e.g. `0 3 * * *`), the process runs one **bootstrap** backup, then stays running and runs backups on that schedule (`restart: unless-stopped` in Compose).
+
+Without **`APP_SCHEDULE`**, it runs once and exits (`0` = success, `1` = failure) — suitable for CronJob / `compose run`.
 
 ## Prerequisites
 
@@ -103,6 +105,7 @@ All variables use the `APP_` prefix (via `envconfig`).
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `APP_ENABLED_TARGETS` | _(empty)_ | Comma-separated list of targets to back up |
+| `APP_SCHEDULE` | _(empty)_ | Cron expression (`0 3 * * *`); empty = one-shot. When set: bootstrap backup, then cron |
 | `APP_REMOTE_NAME` | _(required)_ | rclone remote name (e.g. `b2`) |
 | `APP_REMOTE_PREFIX` | `homelab-backups` | Path prefix on the remote |
 | `APP_RCLONE_CONFIG_PATH` | _(empty)_ | Path to `rclone.conf` (sets `RCLONE_CONFIG`) |
@@ -114,8 +117,8 @@ All variables use the `APP_` prefix (via `envconfig`).
 | Variable | Description |
 |----------|-------------|
 | `APP_{APP}_URL` | Base URL (e.g. `http://sonarr:8989`) |
-| `APP_{APP}_API_KEY` | API key (`X-Api-Key` header) |
-| `APP_{APP}_BACKUP_MOUNT` | Host path mounted at the app’s `/config` (used to resolve backup file paths from the API) |
+| `APP_{APP}_API_KEY` | API key (`X-Api-Key` header); if empty, read from `config.xml` / `config.yaml` under `BACKUP_MOUNT` |
+| `APP_{APP}_BACKUP_MOUNT` | Host path mounted at the app’s `/config` (backup zips + optional API key file) |
 
 ### Per-app API (Bazarr)
 

@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Sargastico/rclonarr/internal/adapter/credentials"
 	"github.com/Sargastico/rclonarr/internal/core/config"
 	"github.com/Sargastico/rclonarr/internal/core/domain/models"
 	"github.com/Sargastico/rclonarr/internal/core/domain/port"
@@ -121,9 +122,19 @@ func resolveTarget(id models.AppID) (models.BackupTarget, error) {
 
 func resolveAPITarget(id models.AppID) (models.BackupTarget, bool, error) {
 	creds := apiCredentials(id)
-	if creds.baseURL == "" && creds.apiKey == "" {
+	if creds.baseURL == "" && creds.apiKey == "" && creds.backupMount == "" {
 		return models.BackupTarget{}, false, nil
 	}
+
+	creds.apiKey = strings.TrimSpace(creds.apiKey)
+	if creds.apiKey == "" && strings.TrimSpace(creds.backupMount) != "" {
+		key, err := apiKeyFromBackupMount(id, creds.backupMount)
+		if err != nil {
+			return models.BackupTarget{}, false, err
+		}
+		creds.apiKey = key
+	}
+
 	if creds.baseURL == "" || creds.apiKey == "" {
 		return models.BackupTarget{}, false, models.ErrMissingAPI
 	}
@@ -215,6 +226,17 @@ func configPathFor(id models.AppID) (string, error) {
 	}
 
 	return path, nil
+}
+
+func apiKeyFromBackupMount(id models.AppID, backupMount string) (string, error) {
+	switch id {
+	case models.AppSonarr, models.AppRadarr, models.AppProwlarr, models.AppLidarr:
+		return credentials.ServarrAPIKey(backupMount)
+	case models.AppBazarr:
+		return credentials.BazarrAPIKey(backupMount)
+	default:
+		return "", models.ErrMissingAPI
+	}
 }
 
 func validateKomodoMongo() error {
