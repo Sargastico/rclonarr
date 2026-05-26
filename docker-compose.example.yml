@@ -1,0 +1,59 @@
+# Example: run separate instances per host to avoid overlapping backups.
+# Schedule with host cron, Kubernetes CronJob, or similar (restart: "no").
+
+services:
+  rclonarr-arr:
+    image: ghcr.io/sargastico/rclonarr:latest
+    restart: "no"
+    environment:
+      APP_ENABLED_TARGETS: sonarr,radarr,prowlarr,lidarr,bazarr
+      APP_REMOTE_NAME: b2
+      APP_REMOTE_PREFIX: homelab-backups
+      APP_RCLONE_CONFIG_PATH: /config/rclone/rclone.conf
+      # Servarr v3 API backup (preferred)
+      APP_SONARR_URL: http://sonarr:8989
+      APP_SONARR_API_KEY: ${SONARR_API_KEY}
+      APP_SONARR_BACKUP_MOUNT: /backup-src/sonarr
+      APP_RADARR_URL: http://radarr:7878
+      APP_RADARR_API_KEY: ${RADARR_API_KEY}
+      APP_RADARR_BACKUP_MOUNT: /backup-src/radarr
+      APP_PROWLARR_URL: http://prowlarr:9696
+      APP_PROWLARR_API_KEY: ${PROWLARR_API_KEY}
+      APP_PROWLARR_BACKUP_MOUNT: /backup-src/prowlarr
+      APP_LIDARR_URL: http://lidarr:8686
+      APP_LIDARR_API_KEY: ${LIDARR_API_KEY}
+      APP_LIDARR_BACKUP_MOUNT: /backup-src/lidarr
+      APP_BAZARR_URL: http://bazarr:6767
+      APP_BAZARR_API_KEY: ${BAZARR_API_KEY}
+      APP_BAZARR_BACKUP_MOUNT: /backup-src/bazarr/backup
+      # Profilarr: config sync fallback only
+      APP_PROFILARR_CONFIG_PATH: /backup-src/profilarr
+    volumes:
+      - ./rclone.conf:/config/rclone/rclone.conf:ro
+      - /path/on/host/sonarr/config:/backup-src/sonarr:ro
+      - /path/on/host/radarr/config:/backup-src/radarr:ro
+      - /path/on/host/prowlarr/config:/backup-src/prowlarr:ro
+      - /path/on/host/lidarr/config:/backup-src/lidarr:ro
+      - /path/on/host/bazarr/backup:/backup-src/bazarr/backup:ro
+      - /path/on/host/profilarr/config:/backup-src/profilarr:ro
+
+  rclonarr-komodo:
+    image: ghcr.io/sargastico/rclonarr:latest
+    restart: "no"
+    environment:
+      APP_ENABLED_TARGETS: komodo
+      APP_REMOTE_NAME: b2
+      APP_REMOTE_PREFIX: homelab-backups
+      APP_RCLONE_CONFIG_PATH: /config/rclone/rclone.conf
+      APP_KOMODO_MONGO_URI: mongodb://komodo:password@mongo:27017/komodo?authSource=admin
+    volumes:
+      - ./rclone.conf:/config/rclone/rclone.conf:ro
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: komodo
+      MONGO_INITDB_ROOT_PASSWORD: password

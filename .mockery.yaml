@@ -1,0 +1,11 @@
+dir: testing/mocks
+filename: "mock_{{.InterfaceName}}.go"
+outpkg: mocks
+packages:
+  github.com/Sargastico/rclonarr/internal/core/domain/port:
+    interfaces:
+      BackupRunner: {}
+      TargetRegistry: {}
+      RcloneSyncer: {}
+      MongoDumper: {}
+      ArrBackupTrigger: {}
