@@ -31,25 +31,82 @@ func ServarrAPIKey(configDir string) (string, error) {
 	return key, nil
 }
 
-var bazarrAPIKeyRE = regexp.MustCompile(`(?m)^\s*apikey:\s*['"]?([^'"\s#]+)`)
+// Bazarr auth.apikey (not Sonarr/Radarr integration keys further down in the same file).
+var bazarrAuthAPIKeyRE = regexp.MustCompile(`(?ms)^auth:\s*\n\s*apikey:\s*([^\s'"]+)`)
 
-// BazarrAPIKey reads auth.apikey from config.yaml next to the Bazarr config tree.
-// backupMount is usually .../bazarr/backup; config.yaml lives in the parent directory.
+var bazarrAnyAPIKeyRE = regexp.MustCompile(`(?m)^\s*apikey:\s*['"]?([^'"\s#]+)`)
+
+// BazarrAPIKey reads auth.apikey from config.yaml under the Bazarr config tree.
+// backupMount is usually .../bazarr/backup (linuxserver stores zips there); config.yaml is
+// at .../bazarr/config.yaml or .../bazarr/config/config.yaml.
 func BazarrAPIKey(backupMount string) (string, error) {
-	dir := strings.TrimSpace(backupMount)
-	if strings.HasSuffix(filepath.ToSlash(dir), "/backup") {
-		dir = filepath.Dir(dir)
+	root := bazarrConfigRoot(backupMount)
+	candidates := []string{
+		filepath.Join(root, "config.yaml"),
+		filepath.Join(root, "config", "config.yaml"),
 	}
-
-	path := filepath.Join(dir, "config.yaml")
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return "", fmt.Errorf("read bazarr config.yaml: %w", err)
+	if extra, err := findBazarrConfigYAML(root); err == nil {
+		candidates = append(candidates, extra)
 	}
-
-	m := bazarrAPIKeyRE.FindSubmatch(data)
-	if len(m) < 2 {
+	var readErr error
+	for _, path := range candidates {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			readErr = err
+			continue
+		}
+		if key := parseBazarrAPIKey(data); key != "" {
+			return key, nil
+		}
 		return "", fmt.Errorf("apikey not found in %s", path)
 	}
-	return strings.TrimSpace(string(m[1])), nil
+	return "", fmt.Errorf("read bazarr config.yaml under %s: %w", root, readErr)
+}
+
+func findBazarrConfigYAML(root string) (string, error) {
+	var found string
+	_ = filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if path != root && filepath.Base(path) == "backup" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if d.Name() == "config.yaml" {
+			found = path
+			return filepath.SkipAll
+		}
+		return nil
+	})
+	if found == "" {
+		return "", fmt.Errorf("config.yaml not found under %s", root)
+	}
+	return found, nil
+}
+
+func parseBazarrAPIKey(data []byte) string {
+	if m := bazarrAuthAPIKeyRE.FindSubmatch(data); len(m) >= 2 {
+		return strings.TrimSpace(string(m[1]))
+	}
+	for _, m := range bazarrAnyAPIKeyRE.FindAllSubmatch(data, -1) {
+		if len(m) < 2 {
+			continue
+		}
+		key := strings.TrimSpace(string(m[1]))
+		if key != "" && key != "''" {
+			return key
+		}
+	}
+	return ""
+}
+
+func bazarrConfigRoot(backupMount string) string {
+	dir := strings.TrimSpace(backupMount)
+	if strings.HasSuffix(filepath.ToSlash(dir), "/backup") {
+		return filepath.Dir(dir)
+	}
+	return dir
 }
