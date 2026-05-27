@@ -14,7 +14,6 @@ import (
 	rcconfig "github.com/rclone/rclone/fs/config"
 	"github.com/rclone/rclone/fs/config/configfile"
 	"github.com/rclone/rclone/fs/operations"
-	fssync "github.com/rclone/rclone/fs/sync"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.uber.org/zap"
 
@@ -30,38 +29,6 @@ var _ port.RcloneSyncer = (*Syncer)(nil)
 
 func NewSyncer() *Syncer {
 	return &Syncer{}
-}
-
-func (s *Syncer) Sync(ctx context.Context, localPath, remotePath string) error {
-	if err := s.ensureInitialized(); err != nil {
-		return err
-	}
-
-	srcFs, err := fs.NewFs(ctx, localPath)
-	if err != nil {
-		return fmt.Errorf("open local fs %q: %w", localPath, err)
-	}
-
-	dstFs, err := fs.NewFs(ctx, remotePath)
-	if err != nil {
-		return fmt.Errorf("open remote fs %q: %w", remotePath, err)
-	}
-
-	otelzap.L().InfoContext(ctx, "starting rclone sync",
-		zap.String("source", localPath),
-		zap.String("destination", remotePath),
-	)
-
-	if err := fssync.Sync(ctx, dstFs, srcFs, true); err != nil {
-		return fmt.Errorf("rclone sync %q -> %q: %w", localPath, remotePath, err)
-	}
-
-	otelzap.L().InfoContext(ctx, "rclone sync completed",
-		zap.String("source", localPath),
-		zap.String("destination", remotePath),
-	)
-
-	return nil
 }
 
 func (s *Syncer) Copy(ctx context.Context, localPath, remotePath string) error {

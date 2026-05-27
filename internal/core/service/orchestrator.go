@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
+	"time"
 
 	"github.com/Sargastico/rclonarr/internal/core/config"
 	"github.com/Sargastico/rclonarr/internal/core/domain/models"
 	"github.com/Sargastico/rclonarr/internal/core/domain/port"
+	"github.com/Sargastico/rclonarr/internal/platform/archive"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.uber.org/zap"
 )
@@ -89,8 +90,14 @@ func (o *Orchestrator) Run(ctx context.Context) ([]models.BackupResult, error) {
 }
 
 func (o *Orchestrator) backupConfig(ctx context.Context, target models.BackupTarget) error {
-	remote := o.remote.RemotePath(target.RemoteSubdir)
-	return o.syncer.Sync(ctx, target.LocalPath, remote)
+	at := time.Now().UTC()
+	zipPath, cleanup, err := archive.ZipDirectoryToTemp(target.LocalPath, string(target.ID), at)
+	if err != nil {
+		return fmt.Errorf("zip config for %s: %w", target.ID, err)
+	}
+	defer cleanup()
+
+	return o.copyVersionedZip(ctx, target.RemoteSubdir, zipPath, at)
 }
 
 func (o *Orchestrator) backupArrAPI(ctx context.Context, target models.BackupTarget) error {
@@ -98,14 +105,11 @@ func (o *Orchestrator) backupArrAPI(ctx context.Context, target models.BackupTar
 	if err != nil {
 		return err
 	}
+	if !archive.IsZipFile(localFile) {
+		return fmt.Errorf("%s api backup is not a .zip file: %q", target.ID, localFile)
+	}
 
-	remoteFile := o.remoteFilePath(target.RemoteSubdir, localFile)
-	return o.syncer.Copy(ctx, localFile, remoteFile)
-}
-
-func (o *Orchestrator) remoteFilePath(subdir, localFile string) string {
-	base := o.remote.RemotePath(subdir)
-	return base + "/" + filepath.Base(localFile)
+	return o.copyVersionedZip(ctx, target.RemoteSubdir, localFile, time.Now().UTC())
 }
 
 func (o *Orchestrator) backupKomodo(ctx context.Context, target models.BackupTarget) error {
@@ -134,8 +138,30 @@ func (o *Orchestrator) backupKomodo(ctx context.Context, target models.BackupTar
 		return err
 	}
 
-	remote := o.remote.RemotePath(target.RemoteSubdir)
-	return o.syncer.Sync(ctx, dumpDir, remote)
+	at := time.Now().UTC()
+	zipPath, cleanup, err := archive.ZipDirectoryToTemp(dumpDir, string(target.ID), at)
+	if err != nil {
+		return fmt.Errorf("zip komodo dump: %w", err)
+	}
+	defer cleanup()
+
+	return o.copyVersionedZip(ctx, target.RemoteSubdir, zipPath, at)
+}
+
+func (o *Orchestrator) copyVersionedZip(ctx context.Context, remoteSubdir, localZip string, at time.Time) error {
+	name := archive.VersionedZipName(remoteSubdir, at)
+	remoteFile := o.remote.RemotePath(remoteSubdir) + "/" + name
+
+	otelzap.L().InfoContext(ctx, "uploading versioned backup",
+		zap.String("local_zip", localZip),
+		zap.String("remote_zip", name),
+	)
+
+	if err := o.syncer.Copy(ctx, localZip, remoteFile); err != nil {
+		return fmt.Errorf("copy versioned backup %q: %w", name, err)
+	}
+
+	return nil
 }
 
 func resolveDumpDir() (string, error) {

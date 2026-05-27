@@ -16,9 +16,8 @@ type TargetRegistry interface {
 	EnabledTargets() ([]models.BackupTarget, error)
 }
 
-// RcloneSyncer uploads local paths to a remote rclone destination.
+// RcloneSyncer uploads a local file to a remote rclone destination.
 type RcloneSyncer interface {
-	Sync(ctx context.Context, localPath, remotePath string) error
 	Copy(ctx context.Context, localPath, remotePath string) error
 }
 

@@ -92,9 +92,11 @@ See [docker-compose.example.yml](docker-compose.example.yml) for multi-instance 
 | Navidrome / Seerr / Soulsync | — | config dir sync only |
 | Komodo | — | `mongodump` then rclone sync |
 
-When `APP_{APP}_URL`, `APP_{APP}_API_KEY`, and `APP_{APP}_BACKUP_MOUNT` are set, rclonarr triggers the app backup API, reads the new `.zip` from the mounted config tree, and **copies** it to `{remote}:{prefix}/{app}/`.
+When `APP_{APP}_URL`, `APP_{APP}_API_KEY`, and `APP_{APP}_BACKUP_MOUNT` are set, rclonarr triggers the app backup API, reads the new `.zip` from the mounted config tree, and **copies** it to `{remote}:{prefix}/{app}/` under a new timestamped name.
 
-Config-dir fallback uses one-way **sync** (extraneous files on the remote are removed).
+All targets upload **versioned `.zip` archives** (UTC timestamp in the filename, e.g. `sonarr_backup_20260527_031053.zip`) via **copy** only — previous remote backups are kept, which avoids overwriting a good backup with a failed upload.
+
+Config-dir fallback zips the config directory first, then copies the archive. Komodo runs `mongodump`, zips the dump directory, then copies.
 
 ## Environment variables
 
