@@ -40,6 +40,7 @@ func TestDumper_BuildDumpArgs_Discrete(t *testing.T) {
 	assert.Equal(t, []string{
 		"--format=custom",
 		"--file", "/tmp/app.dump",
+		"--no-password",
 		"--host", "db",
 		"--port", "5432",
 		"--username", "app",
@@ -52,6 +53,17 @@ func TestDumper_BuildDumpArgs_RequiresHostOrURI(t *testing.T) {
 	d := NewDumper()
 	_, _, err := d.BuildDumpArgs("/tmp/app.dump")
 	require.Error(t, err)
+}
+
+func TestDumper_BuildDumpArgs_RequiresPassword(t *testing.T) {
+	config.App = config.AppInfo{
+		PostgresHost: "db",
+		PostgresUser: "admin",
+	}
+	d := NewDumper()
+	_, _, err := d.BuildDumpArgs("/tmp/app.dump")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "APP_POSTGRES_PASSWORD")
 }
 
 func TestReplaceURIDatabase(t *testing.T) {
@@ -75,6 +87,7 @@ func TestDumper_connectionArgs_AllDatabasesOverride(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"PGPASSWORD=secret"}, env)
 	assert.Equal(t, []string{
+		"--no-password",
 		"--host", "postgres",
 		"--username", "admin",
 		"--dbname", "kan",

@@ -166,7 +166,8 @@ func (d *Dumper) connectionArgs(dbName string) ([]string, []string, error) {
 		db = "postgres"
 	}
 
-	args := []string{"--host", host}
+	// Never prompt interactively in containers (would look like "Password for user …" then fail).
+	args := []string{"--no-password", "--host", host}
 	if port := strings.TrimSpace(config.App.PostgresPort); port != "" {
 		args = append(args, "--port", port)
 	}
@@ -175,11 +176,11 @@ func (d *Dumper) connectionArgs(dbName string) ([]string, []string, error) {
 	}
 	args = append(args, "--dbname", db)
 
-	var env []string
-	if pass := config.App.PostgresPassword; pass != "" {
-		env = append(env, "PGPASSWORD="+pass)
+	pass := config.App.PostgresPassword
+	if pass == "" {
+		return nil, nil, fmt.Errorf("APP_POSTGRES_PASSWORD is empty (needed for host %q user %q)", host, config.App.PostgresUser)
 	}
-	return args, env, nil
+	return args, []string{"PGPASSWORD=" + pass}, nil
 }
 
 func replaceURIDatabase(rawURI, dbName string) (string, error) {
