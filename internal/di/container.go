@@ -7,7 +7,8 @@ import (
 
 	"github.com/Sargastico/rclonarr/internal/adapter/arrbackup"
 	"github.com/Sargastico/rclonarr/internal/adapter/mongo"
-	rcloneadapter "github.com/Sargastico/rclonarr/internal/adapter/rclone"
+	"github.com/Sargastico/rclonarr/internal/adapter/postgres"
+	"github.com/Sargastico/rclonarr/internal/adapter/protondrive"
 	"github.com/Sargastico/rclonarr/internal/adapter/targets"
 	"github.com/Sargastico/rclonarr/internal/core/config"
 	"github.com/Sargastico/rclonarr/internal/core/domain/models"
@@ -44,11 +45,12 @@ func NewContainer(ctx context.Context) *Container {
 		otelzap.L().WarnContext(ctx, "profiling is not configured; set APP_ENABLE_PROFILING=false or add a profiler integration")
 	}
 
-	syncer := rcloneadapter.NewSyncer()
+	uploader := protondrive.NewUploader()
 	registry := targets.NewRegistry()
 	dumper := mongo.NewDumper()
+	pgDumper := postgres.NewDumper()
 	arrTrigger := arrbackup.NewTrigger(nil)
-	runner := service.NewOrchestrator(registry, syncer, dumper, arrTrigger, syncer)
+	runner := service.NewOrchestrator(registry, uploader, dumper, pgDumper, arrTrigger, uploader)
 
 	return &Container{
 		runner:        runner,

@@ -1,4 +1,10 @@
-# Example: daemon mode with internal cron, or one-shot without APP_SCHEDULE.
+# Example for Komodo / Compose — use APP_SCHEDULE so the container stays up.
+#
+# If Proton Drive auth is missing (fresh deploy / recreate), rclonarr runs
+# `proton-drive auth login` and prints the browser URL in container logs:
+#   PROTON DRIVE AUTH REQUIRED — open this URL in a browser to sign in
+#   auth_url=https://account.proton.me/desktop/login?...
+# Open that URL, finish sign-in; backups continue without restarting the stack.
 
 services:
   rclonarr-arr:
@@ -7,9 +13,7 @@ services:
     environment:
       APP_ENABLED_TARGETS: sonarr,radarr,prowlarr,lidarr,bazarr
       APP_SCHEDULE: "0 3 * * *"
-      APP_REMOTE_NAME: b2
-      APP_REMOTE_PREFIX: homelab/backups
-      APP_RCLONE_CONFIG_PATH: /config/rclone/rclone.conf
+      APP_REMOTE_PREFIX: /my-files/homelab/backups
       APP_SONARR_URL: http://sonarr:8989
       APP_SONARR_BACKUP_MOUNT: /backup-src/sonarr
       APP_RADARR_URL: http://radarr:7878
@@ -22,7 +26,6 @@ services:
       APP_BAZARR_BACKUP_MOUNT: /backup-src/bazarr
       APP_PROFILARR_CONFIG_PATH: /backup-src/profilarr
     volumes:
-      - ./rclone.conf:/config/rclone/rclone.conf:ro
       - /path/on/host/sonarr/config:/backup-src/sonarr:ro
       - /path/on/host/radarr/config:/backup-src/radarr:ro
       - /path/on/host/prowlarr/config:/backup-src/prowlarr:ro
@@ -36,14 +39,26 @@ services:
     environment:
       APP_ENABLED_TARGETS: komodo
       APP_SCHEDULE: "0 4 * * *"
-      APP_REMOTE_NAME: b2
-      APP_REMOTE_PREFIX: homelab/backups
-      APP_RCLONE_CONFIG_PATH: /config/rclone/rclone.conf
+      APP_REMOTE_PREFIX: /my-files/homelab/backups
       APP_KOMODO_MONGO_URI: mongodb://komodo:password@mongo:27017/komodo?authSource=admin
-    volumes:
-      - ./rclone.conf:/config/rclone/rclone.conf:ro
     depends_on:
       - mongo
+
+  rclonarr-postgres:
+    image: ghcr.io/sargastico/rclonarr:latest
+    restart: unless-stopped
+    environment:
+      APP_ENABLED_TARGETS: postgres
+      APP_SCHEDULE: "0 5 * * *"
+      APP_REMOTE_PREFIX: /my-files/homelab/backups
+      APP_POSTGRES_URI: postgresql://app:password@postgres:5432/appdb
+      # Or dump every DB on the server:
+      # APP_POSTGRES_HOST: postgres
+      # APP_POSTGRES_USER: app
+      # APP_POSTGRES_PASSWORD: password
+      # APP_POSTGRES_ALL_DATABASES: "true"
+    depends_on:
+      - postgres
 
   mongo:
     image: mongo:7
@@ -51,3 +66,11 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: komodo
       MONGO_INITDB_ROOT_PASSWORD: password
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: appdb

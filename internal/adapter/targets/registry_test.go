@@ -68,8 +68,7 @@ func TestRegistry_EnabledTargets(t *testing.T) {
 	require.NoError(t, os.Mkdir(configPath, 0o755))
 
 	config.App = config.AppInfo{
-		RemoteName:       "b2",
-		RcloneConfigPath: "/config/rclone/rclone.conf",
+		RemotePrefix:     "/my-files/homelab-backups",
 		EnabledTargets:   "sonarr",
 		SonarrConfigPath: configPath,
 	}
@@ -86,10 +85,9 @@ func TestRegistry_EnabledTargets(t *testing.T) {
 func TestRegistry_ArrAPIRequiresCredentials(t *testing.T) {
 
 	config.App = config.AppInfo{
-		RemoteName:       "b2",
-		RcloneConfigPath: "/config/rclone/rclone.conf",
-		EnabledTargets:   "sonarr",
-		SonarrURL:        "http://sonarr:8989",
+		RemotePrefix:   "/my-files/homelab-backups",
+		EnabledTargets: "sonarr",
+		SonarrURL:      "http://sonarr:8989",
 	}
 
 	reg := NewRegistry()
@@ -103,8 +101,7 @@ func TestRegistry_ArrAPIKeyFromConfigXML(t *testing.T) {
 <Config><ApiKey>from-disk</ApiKey></Config>`), 0o600))
 
 	config.App = config.AppInfo{
-		RemoteName:        "b2",
-		RcloneConfigPath:  "/config/rclone/rclone.conf",
+		RemotePrefix:      "/my-files/homelab-backups",
 		EnabledTargets:    "sonarr",
 		SonarrURL:         "http://sonarr:8989",
 		SonarrBackupMount: dir,
@@ -120,8 +117,7 @@ func TestRegistry_ArrAPIKeyFromConfigXML(t *testing.T) {
 func TestRegistry_ArrAPIResolved(t *testing.T) {
 
 	config.App = config.AppInfo{
-		RemoteName:        "b2",
-		RcloneConfigPath:  "/config/rclone/rclone.conf",
+		RemotePrefix:      "/my-files/homelab-backups",
 		EnabledTargets:    "sonarr",
 		SonarrURL:         "http://sonarr:8989",
 		SonarrAPIKey:      "secret",
@@ -139,12 +135,53 @@ func TestRegistry_ArrAPIResolved(t *testing.T) {
 func TestRegistry_KomodoRequiresMongo(t *testing.T) {
 
 	config.App = config.AppInfo{
-		RemoteName:       "b2",
-		RcloneConfigPath: "/config/rclone/rclone.conf",
-		EnabledTargets:   "komodo",
+		RemotePrefix:   "/my-files/homelab-backups",
+		EnabledTargets: "komodo",
 	}
 
 	reg := NewRegistry()
 	_, err := reg.EnabledTargets()
 	require.ErrorIs(t, err, models.ErrMissingMongo)
+}
+
+func TestRegistry_PostgresRequiresConnection(t *testing.T) {
+	config.App = config.AppInfo{
+		RemotePrefix:   "/my-files/homelab-backups",
+		EnabledTargets: "postgres",
+	}
+
+	reg := NewRegistry()
+	_, err := reg.EnabledTargets()
+	require.ErrorIs(t, err, models.ErrMissingPostgres)
+}
+
+func TestRegistry_PostgresResolved(t *testing.T) {
+	config.App = config.AppInfo{
+		RemotePrefix:   "/my-files/homelab-backups",
+		EnabledTargets: "postgres",
+		PostgresURI:    "postgresql://user:pass@db:5432/app",
+	}
+
+	reg := NewRegistry()
+	targets, err := reg.EnabledTargets()
+	require.NoError(t, err)
+	require.Len(t, targets, 1)
+	assert.Equal(t, models.AppPostgres, targets[0].ID)
+	assert.Equal(t, models.KindPostgresDump, targets[0].Kind)
+}
+
+func TestRegistry_PostgresAllDatabasesResolved(t *testing.T) {
+	config.App = config.AppInfo{
+		RemotePrefix:         "/my-files/homelab-backups",
+		EnabledTargets:       "postgres",
+		PostgresHost:         "postgres",
+		PostgresUser:         "admin",
+		PostgresAllDatabases: true,
+	}
+
+	reg := NewRegistry()
+	targets, err := reg.EnabledTargets()
+	require.NoError(t, err)
+	require.Len(t, targets, 1)
+	assert.Equal(t, models.KindPostgresDump, targets[0].Kind)
 }

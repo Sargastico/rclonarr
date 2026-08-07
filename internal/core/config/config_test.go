@@ -8,15 +8,15 @@ import (
 )
 
 func TestEnvconfigUsesUnderscoreKeys(t *testing.T) {
-	t.Setenv("APP_REMOTE_NAME", "protondrive-sargx")
-	t.Setenv("APP_REMOTE_PREFIX", "homelab/backups")
-	t.Setenv("APP_RCLONE_CONFIG_PATH", "/config/rclone/rclone.conf")
+	t.Setenv("APP_REMOTE_PREFIX", "/my-files/homelab/backups")
+	t.Setenv("APP_PROTON_DRIVE_BIN", "/usr/local/bin/proton-drive")
+	t.Setenv("APP_PROTON_DRIVE_DBUS", "true")
 	t.Setenv("APP_ENABLED_TARGETS", "sonarr")
 
 	App = AppInfo{}
 	require.NoError(t, envconfig.Process("app", &App))
-	require.Equal(t, "protondrive-sargx", App.RemoteName)
-	require.Equal(t, "homelab/backups", App.RemotePrefix)
-	require.Equal(t, "/config/rclone/rclone.conf", App.RcloneConfigPath)
+	require.Equal(t, "/my-files/homelab/backups", App.RemotePrefix)
+	require.Equal(t, "/usr/local/bin/proton-drive", App.ProtonDriveBin)
+	require.True(t, App.ProtonDriveDBus)
 	require.Equal(t, "sonarr", App.EnabledTargets)
 }

@@ -13,16 +13,18 @@ const (
 	AppNavidrome AppID = "navidrome"
 	AppSeerr     AppID = "seerr"
 	AppSoulsync  AppID = "soulsync"
-	AppKomodo    AppID = "komodo"
+	AppKomodo   AppID = "komodo"
+	AppPostgres AppID = "postgres"
 )
 
 // Kind describes how a target is backed up.
 type Kind string
 
 const (
-	KindConfigSync Kind = "config_sync"
-	KindArrAPI     Kind = "arr_api"
-	KindMongoDump  Kind = "mongo_dump"
+	KindConfigSync    Kind = "config_sync"
+	KindArrAPI        Kind = "arr_api"
+	KindMongoDump     Kind = "mongo_dump"
+	KindPostgresDump  Kind = "postgres_dump"
 )
 
 // APIScheme identifies which HTTP backup API to use.

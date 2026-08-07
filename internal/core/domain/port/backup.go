@@ -2,6 +2,7 @@ package port
 
 import (
 	"context"
+	"time"
 
 	"github.com/Sargastico/rclonarr/internal/core/domain/models"
 )
@@ -16,9 +17,23 @@ type TargetRegistry interface {
 	EnabledTargets() ([]models.BackupTarget, error)
 }
 
-// RcloneSyncer uploads a local file to a remote rclone destination.
-type RcloneSyncer interface {
-	Copy(ctx context.Context, localPath, remotePath string) error
+// RemoteFile is a file entry on the remote backup destination.
+type RemoteFile struct {
+	Name    string
+	Path    string
+	ModTime time.Time // zero if unknown
+}
+
+// RemoteUploader uploads a local file to a remote destination directory.
+type RemoteUploader interface {
+	Upload(ctx context.Context, localPath, remoteDir string) error
+	// EnsureAuth verifies a Proton Drive session and runs auth login if needed
+	// (logs the browser URL and blocks until sign-in completes or ctx is cancelled).
+	EnsureAuth(ctx context.Context) error
+	// ListFiles lists files (not folders) directly under remoteDir.
+	ListFiles(ctx context.Context, remoteDir string) ([]RemoteFile, error)
+	// Trash moves remote paths to trash (soft delete).
+	Trash(ctx context.Context, remotePaths ...string) error
 }
 
 // ArrBackupTrigger triggers an in-app backup via HTTP API and returns the local file path.
@@ -29,4 +44,11 @@ type ArrBackupTrigger interface {
 // MongoDumper dumps a MongoDB database to a local directory.
 type MongoDumper interface {
 	Dump(ctx context.Context, dumpDir string) error
+}
+
+// PostgresDumper dumps PostgreSQL with pg_dump (-Fc).
+// dest is a single .dump file path, or a directory when dumping all databases
+// (each database written as <name>.dump).
+type PostgresDumper interface {
+	Dump(ctx context.Context, dest string) error
 }

@@ -19,7 +19,7 @@ func NewRegistry() *Registry {
 }
 
 func (r *Registry) EnabledTargets() ([]models.BackupTarget, error) {
-	if err := validateRcloneConfig(); err != nil {
+	if err := validateRemoteConfig(); err != nil {
 		return nil, err
 	}
 
@@ -43,9 +43,9 @@ func (r *Registry) EnabledTargets() ([]models.BackupTarget, error) {
 	return targets, nil
 }
 
-func validateRcloneConfig() error {
-	if config.App.RemoteName == "" || config.App.RcloneConfigPath == "" {
-		return models.ErrMissingRclone
+func validateRemoteConfig() error {
+	if strings.TrimSpace(config.App.RemotePrefix) == "" {
+		return models.ErrMissingRemotePrefix
 	}
 	return nil
 }
@@ -82,7 +82,7 @@ func isKnownApp(id models.AppID) bool {
 	switch id {
 	case models.AppSonarr, models.AppRadarr, models.AppProwlarr, models.AppProfilarr,
 		models.AppLidarr, models.AppBazarr, models.AppNavidrome, models.AppSeerr,
-		models.AppSoulsync, models.AppKomodo:
+		models.AppSoulsync, models.AppKomodo, models.AppPostgres:
 		return true
 	default:
 		return false
@@ -97,6 +97,17 @@ func resolveTarget(id models.AppID) (models.BackupTarget, error) {
 		return models.BackupTarget{
 			ID:           id,
 			Kind:         models.KindMongoDump,
+			RemoteSubdir: string(id),
+		}, nil
+	}
+
+	if id == models.AppPostgres {
+		if err := validatePostgres(); err != nil {
+			return models.BackupTarget{}, err
+		}
+		return models.BackupTarget{
+			ID:           id,
+			Kind:         models.KindPostgresDump,
 			RemoteSubdir: string(id),
 		}, nil
 	}
@@ -247,6 +258,19 @@ func validateKomodoMongo() error {
 	}
 	if strings.TrimSpace(config.App.KomodoMongoAddress) == "" {
 		return models.ErrMissingMongo
+	}
+	return nil
+}
+
+func validatePostgres() error {
+	if strings.TrimSpace(config.App.PostgresURI) != "" {
+		return nil
+	}
+	if strings.TrimSpace(config.App.PostgresHost) == "" {
+		return models.ErrMissingPostgres
+	}
+	if !config.App.PostgresAllDatabases && strings.TrimSpace(config.App.PostgresDBName) == "" {
+		return models.ErrMissingPostgres
 	}
 	return nil
 }

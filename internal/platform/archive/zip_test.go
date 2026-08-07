@@ -12,6 +12,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestParseVersionedBackupTime(t *testing.T) {
+	t.Parallel()
+
+	at, ok := ParseVersionedBackupTime("postgres_backup_20260102_120000.dump")
+	require.True(t, ok)
+	assert.Equal(t, time.Date(2026, 1, 2, 12, 0, 0, 0, time.UTC), at)
+
+	_, ok = ParseVersionedBackupTime("readme.txt")
+	assert.False(t, ok)
+}
+
+func TestVersionedBackupName(t *testing.T) {
+	t.Parallel()
+
+	got := VersionedBackupName("postgres", time.Date(2026, 1, 2, 12, 0, 0, 0, time.UTC), "dump")
+	assert.Equal(t, "postgres_backup_20260102_120000.dump", got)
+}
+
 func TestVersionedZipName(t *testing.T) {
 	t.Parallel()
 

@@ -6,15 +6,42 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
 
 const versionedZipTimeLayout = "20060102_150405"
 
+// versionedBackupNameRE matches e.g. sonarr_backup_20260527_031053.zip
+var versionedBackupNameRE = regexp.MustCompile(`(?i)^.+_backup_(\d{8}_\d{6})\.[^./]+$`)
+
+// VersionedBackupName returns a UTC timestamped backup filename, e.g. postgres_backup_20260527_031053.dump.
+func VersionedBackupName(targetID string, at time.Time, ext string) string {
+	ext = strings.TrimPrefix(ext, ".")
+	if ext == "" {
+		ext = "bin"
+	}
+	return fmt.Sprintf("%s_backup_%s.%s", targetID, at.UTC().Format(versionedZipTimeLayout), ext)
+}
+
 // VersionedZipName returns a UTC timestamped backup filename, e.g. sonarr_backup_20260527_031053.zip.
 func VersionedZipName(targetID string, at time.Time) string {
-	return fmt.Sprintf("%s_backup_%s.zip", targetID, at.UTC().Format(versionedZipTimeLayout))
+	return VersionedBackupName(targetID, at, "zip")
+}
+
+// ParseVersionedBackupTime extracts the UTC timestamp from a versioned backup filename.
+func ParseVersionedBackupTime(name string) (time.Time, bool) {
+	name = filepath.Base(name)
+	m := versionedBackupNameRE.FindStringSubmatch(name)
+	if len(m) != 2 {
+		return time.Time{}, false
+	}
+	at, err := time.ParseInLocation(versionedZipTimeLayout, m[1], time.UTC)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return at, true
 }
 
 // ZipDirectory writes the contents of srcDir into destZip (deflate).

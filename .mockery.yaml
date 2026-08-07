@@ -6,6 +6,7 @@ packages:
     interfaces:
       BackupRunner: {}
       TargetRegistry: {}
-      RcloneSyncer: {}
+      RemoteUploader: {}
       MongoDumper: {}
+      PostgresDumper: {}
       ArrBackupTrigger: {}
