@@ -59,8 +59,7 @@ RUN apk add --no-cache \
     && grep -Eq "${FILE_RE}" /tmp/proton-drive.file \
     && ldd /usr/local/bin/proton-drive | tee /tmp/proton-drive.ldd \
     && ! grep -q 'not found' /tmp/proton-drive.ldd \
-    && mkdir -p /data \
-    && chown nobody:nobody /data
+    && mkdir -p /data
 
 COPY --from=builder /go/bin/rclonarr /usr/local/bin/rclonarr
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
@@ -72,7 +71,8 @@ ENV HOME=/data \
     APP_PROTON_DRIVE_DBUS=false \
     APP_REMOTE_PREFIX=/my-files/homelab-backups
 
-USER nobody
+# Run as root so bind/named-volume backups can read mode-600 app files
+# (e.g. SoulSync .encryption_key). Override with compose user: if needed.
 WORKDIR /data
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
