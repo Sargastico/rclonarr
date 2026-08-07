@@ -298,7 +298,10 @@ func looksLikeAuthRequired(out []byte, err error) bool {
 	return strings.Contains(s, "need to login") ||
 		strings.Contains(s, "login first") ||
 		strings.Contains(s, "not authenticated") ||
-		strings.Contains(s, "unauthenticated")
+		strings.Contains(s, "unauthenticated") ||
+		strings.Contains(s, "failed to load session") ||
+		strings.Contains(s, "org.freedesktop.secrets") ||
+		strings.Contains(s, "secrets available")
 }
 
 func extractAuthURL(line string) string {

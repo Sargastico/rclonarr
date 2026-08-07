@@ -38,6 +38,7 @@ RUN apk add --no-cache \
         postgresql-client \
         tzdata \
         libsecret \
+        gnome-keyring \
         dbus-x11 \
         curl \
         libstdc++ \

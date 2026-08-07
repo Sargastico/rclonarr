@@ -139,6 +139,7 @@ func TestUploader_EnsureAuth_LogsURLAndWaits(t *testing.T) {
 func TestLooksLikeAuthRequired(t *testing.T) {
 	t.Parallel()
 	assert.True(t, looksLikeAuthRequired([]byte("You need to login first"), errors.New("exit status 1")))
+	assert.True(t, looksLikeAuthRequired([]byte("Failed to load session from secrets"), errors.New("exit status 1")))
 	assert.False(t, looksLikeAuthRequired([]byte("permission denied"), errors.New("exit status 1")))
 }
 
