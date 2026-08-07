@@ -47,7 +47,8 @@ RUN apk add --no-cache \
          -o /usr/local/bin/proton-drive \
     && echo "${SHA}  /usr/local/bin/proton-drive" | sha512sum -c - \
     && chmod +x /usr/local/bin/proton-drive \
-    && /usr/local/bin/proton-drive --help >/dev/null \
+    && ldd /usr/local/bin/proton-drive | tee /tmp/proton-drive.ldd \
+    && ! grep -q 'not found' /tmp/proton-drive.ldd \
     && mkdir -p /data \
     && chown nobody:nobody /data
 
