@@ -13,8 +13,9 @@ const (
 	AppNavidrome AppID = "navidrome"
 	AppSeerr     AppID = "seerr"
 	AppSoulsync  AppID = "soulsync"
-	AppKomodo   AppID = "komodo"
-	AppPostgres AppID = "postgres"
+	AppIgnis     AppID = "ignis"
+	AppKomodo    AppID = "komodo"
+	AppPostgres  AppID = "postgres"
 )
 
 // Kind describes how a target is backed up.

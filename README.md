@@ -109,7 +109,7 @@ See [docker-compose.example.yml](docker-compose.example.yml) for multi-instance 
 | Lidarr | same v3 API | `APP_LIDARR_CONFIG_PATH` sync |
 | Bazarr | `POST /api/system/backups` | `APP_BAZARR_CONFIG_PATH` sync |
 | Profilarr | — | config dir sync only |
-| Navidrome / Seerr / Soulsync | — | config dir sync only |
+| Navidrome / Seerr / Soulsync / Ignis | — | config dir sync only |
 | Komodo | — | `mongodump` then Proton Drive upload |
 | Postgres | — | `pg_dump -Fc` then Proton Drive upload |
 
@@ -161,6 +161,7 @@ Same pattern: `APP_BAZARR_URL`, `APP_BAZARR_API_KEY`, `APP_BAZARR_BACKUP_MOUNT` 
 | `APP_NAVIDROME_CONFIG_PATH` | navidrome |
 | `APP_SEERR_CONFIG_PATH` | seerr |
 | `APP_SOULSYNC_CONFIG_PATH` | soulsync |
+| `APP_IGNIS_CONFIG_PATH` | ignis |
 
 ### Komodo / MongoDB
 

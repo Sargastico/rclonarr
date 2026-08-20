@@ -65,6 +65,7 @@ type AppInfo struct {
 	NavidromeConfigPath string `default:"" envconfig:"NAVIDROME_CONFIG_PATH"`
 	SeerrConfigPath     string `default:"" envconfig:"SEERR_CONFIG_PATH"`
 	SoulsyncConfigPath  string `default:"" envconfig:"SOULSYNC_CONFIG_PATH"`
+	IgnisConfigPath     string `default:"" envconfig:"IGNIS_CONFIG_PATH"`
 
 	KomodoMongoURI      string `default:"" envconfig:"KOMODO_MONGO_URI"`
 	KomodoMongoAddress  string `default:"" envconfig:"KOMODO_MONGO_ADDRESS"`

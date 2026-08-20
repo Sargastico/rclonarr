@@ -132,6 +132,53 @@ func TestRegistry_ArrAPIResolved(t *testing.T) {
 	assert.Equal(t, models.APISchemeServarrV3, targets[0].APIScheme)
 }
 
+func TestRegistry_IgnisConfigSync(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "ignis")
+	require.NoError(t, os.Mkdir(configPath, 0o755))
+
+	tests := []struct {
+		name    string
+		cfg     config.AppInfo
+		wantErr error
+	}{
+		{
+			name: "resolved",
+			cfg: config.AppInfo{
+				RemotePrefix:    "/my-files/homelab-backups",
+				EnabledTargets:  "ignis",
+				IgnisConfigPath: configPath,
+			},
+		},
+		{
+			name: "missing path",
+			cfg: config.AppInfo{
+				RemotePrefix:   "/my-files/homelab-backups",
+				EnabledTargets: "ignis",
+			},
+			wantErr: models.ErrMissingPath,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config.App = tt.cfg
+			reg := NewRegistry()
+			targets, err := reg.EnabledTargets()
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Len(t, targets, 1)
+			assert.Equal(t, models.AppIgnis, targets[0].ID)
+			assert.Equal(t, models.KindConfigSync, targets[0].Kind)
+			assert.Equal(t, configPath, targets[0].LocalPath)
+			assert.Equal(t, "ignis", targets[0].RemoteSubdir)
+		})
+	}
+}
+
 func TestRegistry_KomodoRequiresMongo(t *testing.T) {
 
 	config.App = config.AppInfo{

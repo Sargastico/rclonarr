@@ -82,7 +82,7 @@ func isKnownApp(id models.AppID) bool {
 	switch id {
 	case models.AppSonarr, models.AppRadarr, models.AppProwlarr, models.AppProfilarr,
 		models.AppLidarr, models.AppBazarr, models.AppNavidrome, models.AppSeerr,
-		models.AppSoulsync, models.AppKomodo, models.AppPostgres:
+		models.AppSoulsync, models.AppIgnis, models.AppKomodo, models.AppPostgres:
 		return true
 	default:
 		return false
@@ -226,6 +226,8 @@ func configPathFor(id models.AppID) (string, error) {
 		path = config.App.SeerrConfigPath
 	case models.AppSoulsync:
 		path = config.App.SoulsyncConfigPath
+	case models.AppIgnis:
+		path = config.App.IgnisConfigPath
 	default:
 		return "", models.ErrUnknownTarget
 	}
